@@ -29,10 +29,17 @@ router.get('/google/callback/buyer',
     console.log("📥 Callback route hit");
     if (!req.user) return res.redirect(`${CLIENT_URL}/auth/google/failure`);
     const token = generateToken({ id: req.user._id });
-    // res.redirect(`${CLIENT_URL}/auth/google/callback/buyer?token=${token}`);
-    res.redirect(`${CLIENT_URL}/signup?Token=${token}`);
+    // Set the token as a secure, HTTP-only cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'Lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 1 day
+    });
+
+    // Redirect without token in URL
+    res.redirect(`${CLIENT_URL}/signup`);
   }
 );
-
 
 export default router;
