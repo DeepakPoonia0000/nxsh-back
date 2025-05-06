@@ -7,10 +7,10 @@ const userSchema = new mongoose.Schema({
   },
   password: String,
   googleId: String,
-  role:{
-    type:String,
-    require:true,
-    default:"user"
+  role: {
+    type: String,
+    require: true,
+    default: "user"
   },
   picture: String,
   accessToken: String,

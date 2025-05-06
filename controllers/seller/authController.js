@@ -1,18 +1,18 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import User from "../../models/user/user.js";
 import { sendEmail } from '../../utils/mailer.js';
 import { generateToken } from '../../utils/jwt.js';
 import { CLIENT_URL, JWT_SECRET } from '../../config/env.js';
+import Seller from '../../models/seller/seller.js';
 
 
 export const signup = async (req, res) => {
     const { email } = req.body;
     try {
-        const user = await User.findOne({ email });
+        const user = await Seller.findOne({ email });
         if (user) return res.status(400).json({ message: 'User already exists' });
 
-        const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '15m' });
+        const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '55m' });
         const link = `${CLIENT_URL}/create-password/${token}`;
         await sendEmail(email, 'Create Your Password', `<a href="${link}">Set Password</a>`);
 
@@ -28,13 +28,19 @@ export const createPassword = async (req, res) => {
         const decoded = jwt.verify(token, JWT_SECRET);
         const hashed = await bcrypt.hash(password, 10);
 
-        const user = await User.findOneAndUpdate(
+        const user = await Seller.findOneAndUpdate(
             { email: decoded.email },
             { password: hashed, isVerified: true },
             { new: true, upsert: true }
         );
 
         const authToken = generateToken({ id: user._id });
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: true, // Set secure in production
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
         res.status(200).json({ token: authToken });
     } catch (err) {
         res.status(400).json({ message: 'Invalid or expired token' });
@@ -44,13 +50,20 @@ export const createPassword = async (req, res) => {
 export const login = async (req, res) => {
     const { email, password } = req.body;
     try {
-        const user = await User.findOne({ email });
+        const user = await Seller.findOne({ email });
         if (!user || !user.isVerified) return res.status(401).json({ message: 'Unauthorized' });
 
         const match = await bcrypt.compare(password, user.password);
         if (!match) return res.status(401).json({ message: 'Invalid credentials' });
 
         const token = generateToken({ id: user._id });
+        // Set token in HTTP-only cookie
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: true, // Set secure in production
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
         res.status(200).json({ token });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -79,7 +92,7 @@ export const logout = async (req, res) => {
 export const forgotPassword = async (req, res) => {
     const { email } = req.body;
     try {
-        const user = await User.findOne({ email });
+        const user = await Seller.findOne({ email });
         if (!user) return res.status(200).json({ message: 'If account exists, reset link sent' });
 
         const token = jwt.sign({ id: user._id, time: Date.now() }, JWT_SECRET, { expiresIn: '15m' });
@@ -97,7 +110,7 @@ export const resetPassword = async (req, res) => {
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
         const hashed = await bcrypt.hash(password, 10);
-        await User.findByIdAndUpdate(decoded.id, { password: hashed });
+        await Seller.findByIdAndUpdate(decoded.id, { password: hashed });
 
         res.status(200).json({ message: 'Password updated' });
     } catch (err) {

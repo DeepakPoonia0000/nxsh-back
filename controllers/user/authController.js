@@ -31,10 +31,16 @@ export const createPassword = async (req, res) => {
         const user = await User.findOneAndUpdate(
             { email: decoded.email },
             { password: hashed, isVerified: true },
-            { new: true, upsert: true } 
+            { new: true, upsert: true }
         );
 
         const authToken = generateToken({ id: user._id });
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: true, // Set secure in production
+            sameSite: 'strict',
+            maxAge: 70 * 24 * 60 * 60 * 1000 // 7 days
+        });
         res.status(200).json({ token: authToken });
     } catch (err) {
         res.status(400).json({ message: 'Invalid or expired token' });
@@ -51,6 +57,12 @@ export const login = async (req, res) => {
         if (!match) return res.status(401).json({ message: 'Invalid credentials' });
 
         const token = generateToken({ id: user._id });
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: true, // Set secure in production
+            sameSite: 'strict',
+            maxAge: 70 * 24 * 60 * 60 * 1000 // 7 days
+        });
         res.status(200).json({ token });
     } catch (err) {
         res.status(500).json({ message: err.message });

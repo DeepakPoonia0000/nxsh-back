@@ -34,10 +34,9 @@ router.get('/google/callback/buyer',
       httpOnly: true,
       secure: false,
       sameSite: 'Lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 1 day
+      maxAge: 70 * 24 * 60 * 60 * 1000, // 70 day
     });
 
-    // Redirect without token in URL
     res.redirect(`${CLIENT_URL}/signup`);
   }
 );
