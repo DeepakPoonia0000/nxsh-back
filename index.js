@@ -3,8 +3,7 @@ import express from 'express';
 import passport from 'passport';
 import dbConnection from './dbConnection/dbConnection.js'
 import './config/GoogleAuth.js';
-import userAuthRouter from './routes/user/authRoutes.js'
-import sellerAuthRoutes from './routes/shop/authRoutes.js'
+import userAuthRouter from './routes/authRoutes.js'
 import categoryRoutes from './routes/admin/categoryRoutes.js'
 import { CLIENT_URL, PORT } from './config/env.js';
 import session from 'express-session';
@@ -31,7 +30,6 @@ app.use(passport.session());
 
 await dbConnection();
 app.use('/auth', userAuthRouter);
-app.use('/seller', sellerAuthRoutes)
 
 app.use('/admin/category', categoryRoutes)
 

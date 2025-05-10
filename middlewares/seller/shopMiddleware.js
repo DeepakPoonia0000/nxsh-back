@@ -4,11 +4,11 @@ import jwt from 'jsonwebtoken'
 
 const authenticate = async (req, res, next) => {
     try {
-        let token = req.headers.authorization?.split(' ')[1];
+        let token = req.cookies.token;
         // const token = req.headers.authorization?.split(" ")[1]; // This will split the "Bearer <token>" and extract the token
 
         if (!token) {
-            token = req.cookies.token;
+            token = req.headers.authorization?.split(' ')[1];
         }
 
         // console.log("Token: ==>", token); // Debug token
@@ -28,7 +28,7 @@ const authenticate = async (req, res, next) => {
         req.shopId = decoded.shopId;
         next();
     } catch (error) {
-        console.error("Authentication error user:", error); // Debugging error
+        console.error("Authentication error shop:", error); // Debugging error
         res.status(401).json({ message: `Authentication error: ${error.message}` });
     }
 };

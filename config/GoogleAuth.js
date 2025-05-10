@@ -1,59 +1,99 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import Seller from '../models/seller/seller.js';
-import User from '../models/user/user.js';
+import User from '../models/user.js'; // Unified model
 import { GOOGLE_CALLBACK_URL, GOOGLE_CLIENT, GOOGLE_SECRET } from './env.js';
 
 passport.serializeUser((user, done) => {
-    done(null, { id: user.id, role: user.role });
+    done(null, { id: user.id, role: user.role }); // Keeping role for possible future use
 });
 
-passport.deserializeUser(async ({ id, role }, done) => {
-    const Model = role === 'seller' ? Seller : User;
-    const user = await Model.findById(id);
-    done(null, user);
+passport.deserializeUser(async ({ id }, done) => {
+    try {
+        const user = await User.findById(id);
+        done(null, user);
+    } catch (error) {
+        done(error, null);
+    }
 });
 
-function configureStrategy(role) {
-    console.log("✅ Google Strategy Callback Triggered for", role);
+// function configureStrategy(role) {
+//     console.log("✅ Google Strategy Callback Triggered for", role);
+//     return new GoogleStrategy({
+//         clientID: GOOGLE_CLIENT,
+//         clientSecret: GOOGLE_SECRET,
+//         callbackURL: `${GOOGLE_CALLBACK_URL}/${role}`,
+//         passReqToCallback: true,
+//     }, async (req, accessToken, refreshToken, profile, done) => {
+//         try {
+//             const { id, displayName, photos, emails } = profile;
+//             const email = emails[0].value;
+
+//             let user = await User.findOne({ googleId: id });
+
+//             if (!user) {
+//                 user = await User.create({
+//                     googleId: id,
+//                     email,
+//                     name: displayName,
+//                     picture: photos[0]?.value || null,
+//                     accessToken,
+//                     refreshToken,
+//                     role,
+//                     isVerified: true,
+//                 });
+//             }
+
+//             return done(null, user);
+//         } catch (err) {
+//             console.error("Error in GoogleStrategy:", err);
+//             return done(err, null);
+//         }
+//     });
+// }
+
+// Use different strategies for buyer and seller login routes
+// passport.use('google-buyer', configureStrategy('buyer'));
+// passport.use('google-seller', configureStrategy('seller'));
+
+function configureStrategy(role, mode) {
     return new GoogleStrategy({
         clientID: GOOGLE_CLIENT,
         clientSecret: GOOGLE_SECRET,
-        callbackURL: `${GOOGLE_CALLBACK_URL}/${role}`,
+        callbackURL: `${GOOGLE_CALLBACK_URL}/${role}/${mode}`,
         passReqToCallback: true,
     }, async (req, accessToken, refreshToken, profile, done) => {
         try {
             const { id, displayName, photos, emails } = profile;
-            // console.log(id, displayName, photos, emails, accessToken, refreshToken,)
             const email = emails[0].value;
-            const Model = role === 'seller' ? Seller : User;
 
-            let user = await Model.findOne({ email });
+            const existingUser = await User.findOne({ email });
 
-            if (!user) {
-                user = await Model.create({
+            if (mode === 'signup') {
+                if (existingUser) {
+                    // 🚫 Already registered
+                    return done(null, false, { message: `User already exists as ${existingUser.role}` });
+                }
+
+                const newUser = await User.create({
                     googleId: id,
                     email,
                     name: displayName,
-                    picture: photos[0].value,
+                    picture: photos[0]?.value || null,
                     accessToken,
                     refreshToken,
+                    role,
                     isVerified: true,
                 });
-            } else {
-                user.accessToken = accessToken;
-                user.refreshToken = refreshToken;
-                user.googleId = id;
-                user.email = email;
-                user.name = user.name || displayName;
-                user.picture = user.picture || photos[0].value;
-                user.isVerified = true;
-                await user.save();
+
+                return done(null, newUser);
             }
 
-            user.role = role;
-            console.log("authentication done ....");
-            return done(null, user);
+            // 🔐 LOGIN
+            if (!existingUser || existingUser.role !== role) {
+                return done(null, false, { message: `No ${role} account found with this email.` });
+            }
+
+            return done(null, existingUser);
         } catch (err) {
             console.error("Error in GoogleStrategy:", err);
             return done(err, null);
@@ -61,5 +101,8 @@ function configureStrategy(role) {
     });
 }
 
-passport.use('google-buyer', configureStrategy('buyer'));
-passport.use('google-seller', configureStrategy('seller'));
+
+passport.use('google-buyer-signup', configureStrategy('buyer', 'signup'));
+passport.use('google-buyer-login', configureStrategy('buyer', 'login'));
+passport.use('google-seller-signup', configureStrategy('seller', 'signup'));
+passport.use('google-seller-login', configureStrategy('seller', 'login'));

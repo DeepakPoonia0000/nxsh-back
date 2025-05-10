@@ -1,18 +1,20 @@
 import { JWT_SECRET } from "../../config/env.js";
-import User from "../../models/user/user.js";
+import User from "../../models/user.js";
 import jwt from 'jsonwebtoken'
 
 const authenticate = async (req, res, next) => {
   try {
-    let token = req.headers.authorization?.split(' ')[1];
+    let token = req.cookies.token;
 
     if (!token) {
-      token = req.cookies.token;
+      token = req.headers.authorization?.split(' ')[1];
     }
 
     if (!token) {
       return res.status(401).json({ message: "No token provided" });
     }
+
+    console.log(token)
 
     const decoded = jwt.verify(token, JWT_SECRET);
 

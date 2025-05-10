@@ -1,5 +1,5 @@
 import express from 'express';
-import { addCategoryHierarchy } from '../../controllers/seller/categoryController.js';
+import { addCategoryHierarchy } from '../../controllers/admin/categoryController.js';
 
 
 const router = express.Router();

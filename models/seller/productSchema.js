@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { validate } from "node-cron";
 
 // const productSchema = new mongoose.Schema({
 //     name: {
@@ -71,7 +72,13 @@ const productSchema = new mongoose.Schema({
     categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
     price: Number,
     description: String,
-    images: [String],
+    images: {
+        type: [String],
+        validate: [arrayLimit, "Exceeds the limit of 4 images"]
+    },
+    video: {
+        type: String
+    },
     sellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 });
 
