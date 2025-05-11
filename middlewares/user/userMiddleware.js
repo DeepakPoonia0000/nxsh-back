@@ -5,16 +5,13 @@ import jwt from 'jsonwebtoken'
 const authenticate = async (req, res, next) => {
   try {
     let token = req.cookies.token;
-
     if (!token) {
-      token = req.headers.authorization?.split(' ')[1];
+      token = req.cookies.sellerToken;
     }
 
     if (!token) {
       return res.status(401).json({ message: "No token provided" });
     }
-
-    console.log(token)
 
     const decoded = jwt.verify(token, JWT_SECRET);
 

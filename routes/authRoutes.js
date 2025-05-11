@@ -30,7 +30,7 @@ router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 
 
-router.post('/getMe', authenticate, getMe)
+router.get('/getMe', authenticate, getMe)
 router.post('/logout', logout)
 
 
@@ -85,6 +85,8 @@ router.post('/logout', logout)
 // );
 
 // Signup routes
+
+
 router.get('/google/buyer/signup', passport.authenticate('google-buyer-signup', {
   scope: ['profile', 'email'],
   accessType: 'offline',
@@ -98,19 +100,39 @@ router.get('/google/callback/buyer/signup',
   }),
   (req, res) => handleGoogleCallback(req, res, 'token') // buyer token name
 );
+router.get('/google/callback/buyer/signup', (req, res, next) => {
+  passport.authenticate('google-buyer-signup', { session: false }, (err, user, info) => {
+    if (err || !user) {
+      const errorMessage = info?.message || 'Google authentication failed';
+      return res.redirect(`${CLIENT_URL}/auth/google/failure?error=${encodeURIComponent(errorMessage)}`);
+    }
+    req.user = user;
+    handleGoogleCallback(req, res, 'token');
+  })(req, res, next);
+});
 
 // Login routes
 router.get('/google/buyer/login', passport.authenticate('google-buyer-login', {
   scope: ['profile', 'email'],
 }));
 
-router.get('/google/callback/buyer/login',
-  passport.authenticate('google-buyer-login', {
-    failureRedirect: `${CLIENT_URL}/auth/google/failure`,
-    session: false,
-  }),
-  (req, res) => handleGoogleCallback(req, res, 'token')
-);
+// router.get('/google/callback/buyer/login',
+//   passport.authenticate('google-buyer-login', {
+//     failureRedirect: `${CLIENT_URL}/auth/google/failure`,
+//     session: false,
+//   }),
+//   (req, res) => handleGoogleCallback(req, res, 'token')
+// );
+router.get('/google/callback/buyer/login', (req, res, next) => {
+  passport.authenticate('google-buyer-login', { session: false }, (err, user, info) => {
+    if (err || !user) {
+      const errorMessage = info?.message || 'Google authentication failed';
+      return res.redirect(`${CLIENT_URL}/auth/google/failure?error=${encodeURIComponent(errorMessage)}`);
+    }
+    req.user = user;
+    handleGoogleCallback(req, res, 'token');
+  })(req, res, next);
+});
 
 // Repeat same for seller using `shopToken` instead of `token`
 
@@ -120,25 +142,45 @@ router.get('/google/seller/signup', passport.authenticate('google-seller-signup'
   prompt: 'consent',
 }));
 
-router.get('/google/callback/seller/signup',
-  passport.authenticate('google-seller-signup', {
-    failureRedirect: `${CLIENT_URL}/auth/google/failure`,
-    session: false,
-  }),
-  (req, res) => handleGoogleCallback(req, res, 'shopToken')
-);
+// router.get('/google/callback/seller/signup',
+//   passport.authenticate('google-seller-signup', {
+//     failureRedirect: `${CLIENT_URL}/auth/google/failure`,
+//     session: false,
+//   }),
+//   (req, res) => handleGoogleCallback(req, res, 'shopToken')
+// );
+router.get('/google/callback/seller/signup', (req, res, next) => {
+  passport.authenticate('google-seller-signup', { session: false }, (err, user, info) => {
+    if (err || !user) {
+      const errorMessage = info?.message || 'Google authentication failed';
+      return res.redirect(`${CLIENT_URL}/auth/google/failure?error=${encodeURIComponent(errorMessage)}`);
+    }
+    req.user = user;
+    handleGoogleCallback(req, res, 'sellerToken');
+  })(req, res, next);
+});
 
 router.get('/google/seller/login', passport.authenticate('google-seller-login', {
   scope: ['profile', 'email'],
 }));
 
-router.get('/google/callback/seller/login',
-  passport.authenticate('google-seller-login', {
-    failureRedirect: `${CLIENT_URL}/auth/google/failure`,
-    session: false,
-  }),
-  (req, res) => handleGoogleCallback(req, res, 'shopToken')
-);
+// router.get('/google/callback/seller/login',
+//   passport.authenticate('google-seller-login', {
+//     failureRedirect: `${CLIENT_URL}/auth/google/failure`,
+//     session: false,
+//   }),
+//   (req, res) => handleGoogleCallback(req, res, 'shopToken')
+// );
+router.get('/google/callback/seller/login', (req, res, next) => {
+  passport.authenticate('google-seller-login', { session: false }, (err, user, info) => {
+    if (err || !user) {
+      const errorMessage = info?.message || 'Google authentication failed';
+      return res.redirect(`${CLIENT_URL}/auth/google/failure?error=${encodeURIComponent(errorMessage)}`);
+    }
+    req.user = user;
+    handleGoogleCallback(req, res, 'sellerToken');
+  })(req, res, next);
+});
 
 
 export default router;

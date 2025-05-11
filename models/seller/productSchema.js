@@ -67,9 +67,19 @@ import { validate } from "node-cron";
 //     }
 // }, { timestamps: true });
 
+function arrayLimit(val) {
+    return val.length <= 4;
+}
+
 const productSchema = new mongoose.Schema({
     name: { type: String, required: true },
     categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+    categoryPath: [{
+        categoryId: {
+            type: mongoose.Schema.Types.ObjectId, ref: 'Category',
+        },
+        categoryName: String
+    }],
     price: Number,
     description: String,
     images: {
@@ -79,7 +89,7 @@ const productSchema = new mongoose.Schema({
     video: {
         type: String
     },
-    sellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+    shopId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 });
 
 const Product = mongoose.model('Product', productSchema);

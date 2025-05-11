@@ -90,6 +90,7 @@ function configureStrategy(role, mode) {
 
             // 🔐 LOGIN
             if (!existingUser || existingUser.role !== role) {
+                console.log("user already exist!");
                 return done(null, false, { message: `No ${role} account found with this email.` });
             }
 

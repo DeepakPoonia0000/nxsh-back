@@ -1,11 +1,11 @@
 import Category from "../../models/categoryModels/category.js";
 import Product from "../../models/seller/productSchema.js";
-import uploadOnCloudinary from "../../utils/cloudinary.js";
+import { uploadOnCloudinary } from "../../utils/cloudinary.js";
 
 export const createProduct = async (req, res) => {
     try {
         const { name, categoryId, price, description } = req.body;
-        const sellerId = req.user._id; // assuming auth middleware
+        const shopId = req.shop._id; // assuming auth middleware
 
         const category = await Category.findById(categoryId);
         if (!category) return res.status(400).json({ message: "Invalid category" });
@@ -13,6 +13,19 @@ export const createProduct = async (req, res) => {
         const hasChildren = await Category.exists({ parentId: categoryId });
         if (hasChildren) {
             return res.status(400).json({ message: "Cannot assign product to non-leaf category" });
+        }
+
+        // Generate the category path
+        const categoryPath = [];
+        let currentCategory = category;
+
+        // Loop through the parent categories to build the category path
+        while (currentCategory) {
+            categoryPath.unshift({
+                categoryId: currentCategory._id,
+                categoryName: currentCategory.name
+            });
+            currentCategory = await Category.findById(currentCategory.parentId);
         }
 
         let productImages = [];
@@ -25,33 +38,39 @@ export const createProduct = async (req, res) => {
                 const uploadedFile = await uploadOnCloudinary(file.path);
                 if (uploadedFile) productImages.push(uploadedFile.url);
             }
+        } else {
+            return res.status(400).json({ message: "Atleast one image is needed ." });
         }
 
         // Upload video
         let productVideo = null;
-        if (req.files?.productVideo) {
-            if (req.files?.productVideo?.[0]?.size > 25 * 1024 * 1024) {
-                return res.status(400).json({ message: "Video must be under 25MB" });
-            }
-            const uploadedVideo = await uploadOnCloudinary(req.files.productVideo[0].path);
-            if (uploadedVideo) productVideo = uploadedVideo.url;
+        // if (req.files?.productVideo) {
+        //     if (req.files?.productVideo?.[0]?.size > 25 * 1024 * 1024) {
+        //         return res.status(400).json({ message: "Video must be under 25MB" });
+        //     }
+        //     console.log("Video file => ", req.files?.productVideo)
+        //     req.files?.productVideo
 
-            // Check and delete temp file
-            try {
-                await fs.unlink(req.files.productVideo[0].path);
-            } catch (unlinkError) {
-                console.warn(`Warning: Could not delete file ${req.files.productVideo[0].path}:`, unlinkError.message);
-            }
-        }
+        //     const uploadedVideo = await uploadOnCloudinary(req.files.productVideo[0].path, 'video');
+        //     if (uploadedVideo) productVideo = uploadedVideo.url;
+
+        //     // Check and delete temp file
+        //     try {
+        //         await fs.unlink(req.files.productVideo[0].path);
+        //     } catch (unlinkError) {
+        //         console.warn(`Warning: Could not delete file ${req.files.productVideo[0].path}:`, unlinkError.message);
+        //     }
+        // }
 
         const product = new Product({
             name,
             categoryId,
+            categoryPath,
             price,
             description,
             images: productImages,
             video: productVideo,
-            sellerId
+            shopId
         });
 
         await product.save();
@@ -62,3 +81,13 @@ export const createProduct = async (req, res) => {
     }
 };
 
+export const getShopProduct = async (req, res) => {
+    try {
+        const { shop } = req;
+        const products = await Product.find({ shopId: shop._id });
+        res.status(201).json({ message: "Products fetched successfully", products });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: "Server error", error: error });
+    }
+}

@@ -17,14 +17,13 @@ const authenticate = async (req, res, next) => {
 
         const decoded = jwt.verify(token, JWT_SECRET);
 
-        const shop = await Shop.find({ userId: decoded.id });
+        const user = await User.findById(decoded.id)
 
-        if (!shop) {
-            return res.status(401).json({ message: "Invalid token or shop not found ." });
+        if (!user || user.role !== "seller") {
+            return res.status(401).json({ message: "Invalid token or user is not a seller" });
         }
 
-        req.shop = shop;
-        req.shopCategory = shop.shopCategory;
+        req.user = user;
         req.userId = decoded.id;
         next();
     } catch (error) {
